@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dataStructures.h"
+#include "quaternions.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -263,16 +264,23 @@ public:
         }
     }
 
-    void imGUI(light& light_source)
+    void imGUI(int& maxBounceLimit, int& raysPerPixel, float& emission, pixelDebugInfo* debugCapture)
     {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         ImGui::Begin("Debugger");
-        ImGui::Text("Light Source");
-        ImGui::SliderFloat("Light Source X Direction", &light_source.direction.x, -1.0f, 1.0f);
-        ImGui::SliderFloat("Light Source Y Direction", &light_source.direction.y, -1.0f, 1.0f);
-        ImGui::SliderFloat("Light Source Z Direction", &light_source.direction.z, -1.0f, 1.0f);
+        ImGui::SliderInt("Max Bounce Limit", &maxBounceLimit, 1, 25);
+        ImGui::SliderInt("Rays Per Pixel", &raysPerPixel, 1, 25);
+        ImGui::SliderFloat("Emission Strength", &emission, 1.0f, 50.0f);
+        ImGui::Text("Debug Capture");
+        ImGui::Text("R (float): %.3f", debugCapture->fr);
+        ImGui::Text("G (float): %.3f", debugCapture->fg);
+        ImGui::Text("B (float): %.3f", debugCapture->fb);
+        ImGui::Text("R (uchar): %d", debugCapture->ir);
+        ImGui::Text("G (uchar): %d", debugCapture->ig);
+        ImGui::Text("B (uchar): %d", debugCapture->ib);
+        ImGui::Text("Hits: %d", debugCapture->ray_hits);
         ImGui::End();
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

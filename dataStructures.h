@@ -6,6 +6,7 @@
 #include <cstdlib>
 
 using uchar = unsigned char;
+using uint = unsigned int;
 
 struct vec3
 {
@@ -50,18 +51,85 @@ inline float randf(float min, float max)
     return (((float)rand() / (float)RAND_MAX) * (max - min)) + min;
 }
 
-//struct color
-//{
-//    float r;
-//    float g;
-//    float b;
-//    float a;
-//
-//    __host__ __device__ color operator * (const color& other) const // color multiplication
-//    {
-//        return { r * r, g * g, b * b, a * a };
-//    }
-//};
+
+struct color3
+{
+    float r;
+    float g;
+    float b;
+
+    __host__ __device__ color3 operator * (const color3& other) const // multiply colors
+    {
+        return
+        {
+            r * other.r,
+            g * other.g,
+            b * other.b
+        };
+    }
+
+    __host__ __device__ color3 operator + (const color3& other) const // add colors
+    {
+        return
+        {
+            r + other.r,
+            g + other.g,
+            b + other.b
+        };
+    }
+
+    __host__ __device__ color3 operator / (const float& other) const // divide color by float
+    {
+        return
+        {
+            r / other,
+            g / other,
+            b / other
+        };
+    }
+
+    __host__ __device__ color3 operator * (const float& other) const // multiply color by float
+    {
+        return
+        {
+            r * other,
+            g * other,
+            b * other
+        };
+    }
+
+    __host__ __device__ color3& operator += (const color3& other)
+    {
+        r += other.r;
+        g += other.g;
+        b += other.b;
+        return *this;
+    }
+
+    __host__ __device__ color3& operator *= (const color3& other)
+    {
+        r *= other.r;
+        g *= other.g;
+        b *= other.b;
+        return *this;
+    }
+
+    __host__ __device__ color3& operator *= (const float& other)
+    {
+        r *= other;
+        g *= other;
+        b *= other;
+        return *this;
+    }
+
+    __host__ __device__ color3& operator /= (const float& other)
+    {
+        r /= other;
+        g /= other;
+        b /= other;
+        return *this;
+    }
+};
 
 struct camera
 {
@@ -76,57 +144,48 @@ struct sphere
 {
     vec3 position;
     float radius;
-    uchar4 color;
+    color3 color;
+    bool isLightSource;
 };
 
-struct light
+struct hitInfo
 {
-    vec3 direction;
-    uchar4 color;
-};
-
-struct plane
-{
-    vec3 position;
+    bool didHit;
+    bool didHitLight;
+    vec3 hitLocation;
+    color3 hitColor;
     vec3 normal;
 };
 
-
-
-
-
-
-struct quat
+__device__ inline float rfloat(uint& seed)
 {
-    float w;
-    float x;
-    float y;
-    float z;
+    seed ^= seed >> 16;
+    seed *= 0x85ebca6b;
+    seed ^= seed >> 13;
+    seed *= 0xc2b2ae35;
+    seed ^= seed >> 16;
 
-    quat operator * (const quat& b) const // quaternion multiplication
-    {
-        return
-        {
-            (w * b.w) - (x * b.x) - (y * b.y) - (z * b.z),
-            (w * b.x) + (x * b.w) + (y * b.z) - (z * b.y),
-            (w * b.y) - (x * b.z) + (y * b.w) + (z * b.x),
-            (w * b.z) + (x * b.y) - (y * b.x) + (z * b.w)
-        };
-    }
-};
+    return ((float)seed / (float)UINT_MAX) * 2.0f - 1.0f;
 
-inline vec3 quaternionRotate(vec3& a, vec3& b, float theta)
-{
-    float half = theta / 2.0f;
-    float s = sin(half);
+    //uint rint = seed % 65535;
+    //float random = rint / 65535.0f;
+    //return random * 2.0f - 1.0f;
 
-    quat q = { cos(half), b.x * s, b.y * s, b.z * s };
-    quat qinv = { q.w, -q.x, -q.y, -q.z };
-    quat p = { 0.0f, a.x, a.y, a.z };
-    
-    quat qp = q * p;
-    quat result = qp * qinv;
-
-    return { result.x, result.y, result.z };
+    //seed = seed * 747796405 + 2891336453;
+    //seed = ((seed >> ((seed >> 28) + 4)) ^ seed) * 277803737;
+    //seed = (seed >> 22) ^ seed;
+    //float random = seed / 4294967295.0;
+    //return random * 2.0f - 1.0f;
 }
 
+
+struct pixelDebugInfo
+{
+    float fr;
+    float fg;
+    float fb;
+    int ir;
+    int ig;
+    int ib;
+    int ray_hits;
+};
